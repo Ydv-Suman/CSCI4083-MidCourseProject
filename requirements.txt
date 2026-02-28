@@ -1,8 +1,12 @@
 numpy
 pandas
-matplot
+matplotlib
 seaborn
 scikit-learn
 ipykernel
 kagglehub[pandas-datasets]
 streamlit
+tensorflow
+wandb
+tensorflow-metal
+tensorflow-macos
