@@ -1,57 +1,99 @@
 # Sign Language MNIST — Translation Engine
 
-A translation engine that takes a static image of a hand sign (A–Z) and predicts the letter. Built with a classical ML baseline (SVM/Random Forest) and a neural network (PyTorch/TensorFlow), with a local dashboard for inference.
+A translation engine that takes a static image of a hand sign (A–Z) and predicts the corresponding letter. Built with a classical ML baseline (Random Forest) and a multi-layer perceptron (TensorFlow), with a Streamlit dashboard for live inference.
+
+## Dataset
+
+[Sign Language MNIST](https://www.kaggle.com/datasets/datamunge/sign-language-mnist) — 28×28 grayscale images of hand signs for letters A–Z (excluding J and Z, which require motion). The dataset contains ~27,455 training and ~7,172 test samples across 24 classes.
+
+## Project Structure
+
+```
+├── baseline_model/
+│   ├── model.ipynb              # Baseline training notebook
+│   └── model.py                 # Standalone baseline training script
+├── multilayer_model/
+│   ├── multi_layer.py           # MLP architecture definition
+│   ├── train_multi_layer.py     # Training script
+│   ├── test_multi_layer.py      # Evaluation script
+│   ├── multi_layer.ipynb        # MLP notebook (Colab)
+│   └── multilayer_model.keras   # Saved trained model
+├── utils/
+│   └── data_process.py          # Data loading utilities
+├── data/
+│   └── sign-language-mnist/     # Dataset CSVs and reference images
+├── dashboard.py                 # Streamlit app for inference
+├── requirements.txt
+└── README.md
+```
+
+## Models
+
+### Baseline — Random Forest
+
+- Uses `RandomForestClassifier` with `RandomizedSearchCV` for hyperparameter tuning
+- Features are standardized with `StandardScaler`
+- Saved as `baseline_model.pkl`
+
+### Multilayer — MLP (TensorFlow/Keras)
+
+- Sequential model: Dense(512) → Dense(256) → Dense(128) → Dense(25)
+- Each hidden layer uses BatchNormalization, LeakyReLU, Dropout(0.25), and L2 regularization
+- Adam optimizer with exponential learning rate decay
+- EarlyStopping and ReduceLROnPlateau callbacks
+- Saved as `multilayer_model.keras`
 
 ## Setup
 
 ### 1. Download the data
 
-You need to download the Sign Language MNIST dataset and place it in the `data` folder.
-
-**Using Kaggle CLI:**
+Download the Sign Language MNIST dataset and place it in `data/sign-language-mnist/`. Requires a [Kaggle API](https://github.com/Kaggle/kaggle-api) key in `~/.kaggle/kaggle.json`.
 
 ```bash
 kaggle datasets download -d datamunge/sign-language-mnist
+unzip sign-language-mnist.zip -d data/sign-language-mnist/
 ```
 
-Then unzip and move the contents into the project’s `data` directory (e.g. create `data/sign-language-mnist/` and put the CSV files there, or unzip directly into `data/`).
-
-**Note:** You must have the [Kaggle API](https://github.com/Kaggle/kaggle-api) set up (API key in `~/.kaggle/kaggle.json`) to use the command above.
-
-### 2. Create a virtual environment
+### 2. Create and activate a virtual environment
 
 ```bash
-python3 -m venv .venv
+python3.11 -m venv .venv
+source .venv/bin/activate        # macOS / Linux
+# .venv\Scripts\activate.bat     # Windows
 ```
 
-### 3. Activate the virtual environment
-
-**macOS / Linux:**
-
-```bash
-source .venv/bin/activate
-```
-
-**Windows (Command Prompt):**
-
-```cmd
-.venv\Scripts\activate.bat
-```
-
-4. Install dependencies
-
-With the virtual environment activated:
+### 3. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Project structure
-
-- `baseline_model/` — Classical ML model (SVM or Random Forest) and training notebook
-- `data/` — Sign Language MNIST data (download and place here)
-- `dashboard.py` — Local dashboard for uploading hand sign images and viewing predictions
-
 ## Usage
 
-After setup, you can train the baseline model (see `baseline_model/model.ipynb`) and run the dashboard (e.g. `streamlit run dashboard.py` if using Streamlit).
+### Train the baseline model
+
+Run the notebook `baseline_model/model.ipynb` or the standalone script:
+
+```bash
+python baseline_model/model.py
+```
+
+### Train the multilayer model
+
+```bash
+python multilayer_model/train_multi_layer.py
+```
+
+### Evaluate the multilayer model
+
+```bash
+python multilayer_model/test_multi_layer.py
+```
+
+### Run the dashboard
+
+```bash
+streamlit run dashboard.py
+```
+
+Upload a PNG/JPG image of a hand sign and the dashboard will display the predicted letter and confidence score. The dashboard uses the trained MLP model for inference.

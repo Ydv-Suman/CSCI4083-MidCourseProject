@@ -6,5 +6,6 @@ baseline_model/baseline_model.pkl
 data/sign-language-mnist/*.csv
 data/
 data/sign-language-mnist/**/*.csv
+*.h5
 *.keras
 *.pkl

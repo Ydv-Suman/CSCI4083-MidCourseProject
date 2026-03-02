@@ -11,3 +11,4 @@ wandb
 tensorflow-metal
 tensorflow-macos
 opencv-python
+Watchdog
