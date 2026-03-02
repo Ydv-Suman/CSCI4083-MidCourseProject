@@ -3,6 +3,7 @@ __pycache__/
 kaggle.json
 .DS_Store
 baseline_model/baseline_model.pkl
+multilayer_model/multilayer_model.keras
 data/sign-language-mnist/*.csv
 data/
 data/sign-language-mnist/**/*.csv
