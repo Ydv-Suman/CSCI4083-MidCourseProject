@@ -4,6 +4,58 @@ import tensorflow as tf
 from PIL import Image
 import cv2
 
+st.set_page_config(page_title="Sign Language Letter Predictor", page_icon="✋", layout="centered")
+
+# Custom CSS Theme
+st.markdown("""
+<style>
+.stApp {
+    background-color: #f5f7fb;
+}
+
+.main-title {
+    text-align: center;
+    font-size: 40px;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 5px;
+}
+
+.subtitle {
+    text-align: center;
+    font-size: 18px;
+    color: #6b7280;
+    margin-bottom: 25px;
+}
+
+.upload-box {
+    background: white;
+    padding: 25px;
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+}
+
+.result-box {
+    background: #eef6ff;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+    color: #0b6cff;
+    margin-top: 15px;
+}
+
+.confidence {
+    text-align: center;
+    font-size: 18px;
+    margin-top: 8px;
+    color: #374151;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # Load trained MLP model
 @st.cache_resource
 def load_model():
@@ -20,10 +72,12 @@ label_map = {
 }
 
 # Streamlit UI
-st.title("Sign Language Letter Predictor")
-st.write("Upload a hand sign image to predict the letter")
+st.markdown('<div class="main-title">Sign Language Letter Predictor</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Upload a hand sign image to predict the letter</div>', unsafe_allow_html=True)
 
+st.markdown('<div class="upload-box">', unsafe_allow_html=True)
 uploaded_file = st.file_uploader("Upload Image", type=["png","jpg","jpeg"])
+st.markdown('</div>', unsafe_allow_html=True)
 
 # Preprocess uploaded image to match MNIST style
 def preprocess_image(img):
@@ -51,7 +105,7 @@ def preprocess_image(img):
 if uploaded_file:
 
     image = Image.open(uploaded_file)
-    st.image(image, caption="Uploaded Image")
+    st.image(image, caption="Uploaded Image", use_container_width=True)
 
     processed_img = preprocess_image(image)
 
@@ -59,5 +113,14 @@ if uploaded_file:
     prediction = np.argmax(preds)
     confidence = np.max(preds)
 
-    st.success(f"Predicted Letter: {label_map.get(prediction,'Unknown')}")
-    st.info(f"Confidence: {confidence*100:.2f}%")
+    predicted_letter = label_map.get(prediction,'Unknown')
+
+    st.markdown(
+        f'<div class="result-box">Predicted Letter: {predicted_letter}</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        f'<div class="confidence">Confidence: {confidence*100:.2f}%</div>',
+        unsafe_allow_html=True
+    )
