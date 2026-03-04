@@ -1,7 +1,7 @@
 import streamlit as st
 import numpy as np
 import tensorflow as tf
-from PIL import Image
+from PIL import Image, ImageOps
 import cv2
 
 st.set_page_config(page_title="Sign Language Letter Predictor", page_icon="✋", layout="centered")
@@ -63,12 +63,32 @@ def load_model():
 
 model = load_model()
 
-# Label mapping (dataset skips J and Z)
+# Labels 0-8 = A-I, label 9 = K (J is skipped), 10-23 = L-Y (Z is skipped)
 label_map = {
-0:'A',1:'B',2:'C',3:'D',4:'E',5:'F',6:'G',7:'H',
-8:'I',10:'K',11:'L',12:'M',13:'N',14:'O',15:'P',
-16:'Q',17:'R',18:'S',19:'T',20:'U',21:'V',22:'W',
-23:'X',24:'Y'
+    0: "A",
+    1: "B",
+    2: "C",
+    3: "D",
+    4: "E",
+    5: "F",
+    6: "G",
+    7: "H",
+    8: "I",
+    9: "K",  
+    10: "L",
+    11: "M",
+    12: "N",
+    13: "O",
+    14: "P",
+    15: "Q",
+    16: "R",
+    17: "S",
+    18: "T",
+    19: "U",
+    20: "V",
+    21: "W",
+    22: "X",
+    23: "Y", 
 }
 
 # Streamlit UI
@@ -104,14 +124,30 @@ def preprocess_image(img):
 # Prediction
 if uploaded_file:
 
+
+if uploaded_file:
     image = Image.open(uploaded_file)
     st.image(image, caption="Uploaded Image", use_container_width=True)
 
-    processed_img = preprocess_image(image)
+    # Preprocess matching training pipeline
+    model_input, preview_img = preprocess_image(image)
 
-    preds = model.predict(processed_img)
-    prediction = np.argmax(preds)
-    confidence = np.max(preds)
+    # Run prediction
+    preds = model.predict(model_input)[0]
+
+    st.caption("What the model sees (28×28 grayscale)")
+    st.image(preview_img, width=112)
+
+    top3 = np.argsort(preds)[-3:][::-1]
+    prediction = top3[0]
+    confidence = preds[prediction]
+
+    st.success(f"Predicted Letter: **{label_map.get(prediction, 'Unknown')}**")
+    st.info(f"Confidence: {confidence * 100:.2f}%")
+
+    with st.expander("Top 3 guesses"):
+        for i, idx in enumerate(top3, 1):
+            st.write(f"{i}. **{label_map.get(idx, 'Unknown')}** — {preds[idx] * 100:.1f}%")
 
     predicted_letter = label_map.get(prediction,'Unknown')
 
