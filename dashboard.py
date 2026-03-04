@@ -4,7 +4,59 @@ import tensorflow as tf
 from PIL import Image, ImageOps
 import cv2
 
-# Load trained CNN model
+st.set_page_config(page_title="Sign Language Letter Predictor", page_icon="✋", layout="centered")
+
+# Custom CSS Theme
+st.markdown("""
+<style>
+.stApp {
+    background-color: #f5f7fb;
+}
+
+.main-title {
+    text-align: center;
+    font-size: 40px;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 5px;
+}
+
+.subtitle {
+    text-align: center;
+    font-size: 18px;
+    color: #6b7280;
+    margin-bottom: 25px;
+}
+
+.upload-box {
+    background: white;
+    padding: 25px;
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+}
+
+.result-box {
+    background: #eef6ff;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+    color: #0b6cff;
+    margin-top: 15px;
+}
+
+.confidence {
+    text-align: center;
+    font-size: 18px;
+    margin-top: 8px;
+    color: #374151;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# Load trained MLP model
 @st.cache_resource
 def load_model():
     return tf.keras.models.load_model("multilayer_model/multilayer_model.keras")
@@ -40,50 +92,42 @@ label_map = {
 }
 
 # Streamlit UI
-st.title("Sign Language Letter Predictor")
-st.write("Upload a hand sign image to predict the letter")
+st.markdown('<div class="main-title">Sign Language Letter Predictor</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Upload a hand sign image to predict the letter</div>', unsafe_allow_html=True)
 
-uploaded_file = st.file_uploader("Upload Image", type=["png", "jpg", "jpeg"])
+st.markdown('<div class="upload-box">', unsafe_allow_html=True)
+uploaded_file = st.file_uploader("Upload Image", type=["png","jpg","jpeg"])
+st.markdown('</div>', unsafe_allow_html=True)
 
+# Preprocess uploaded image to match MNIST style
+def preprocess_image(img):
+    img = np.array(img)
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    img = cv2.GaussianBlur(img,(5,5),0)
+    img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11,2)
+    coords = cv2.findNonZero(img)
+    x,y,w,h = cv2.boundingRect(coords)
+    img = img[y:y+h, x:x+w]
+    size = max(w,h)
+    new_img = np.zeros((size,size), dtype=np.uint8)
 
-def preprocess_image(pil_img):
-    """
-    Preprocess to MATCH the training data format exactly.
+    x_offset = (size - w)//2
+    y_offset = (size - h)//2
 
-    """
-    
-    # Convert PIL image to numpy array (RGB)
-    img = np.array(pil_img)
+    new_img[y_offset:y_offset+h, x_offset:x_offset+w] = img
+    img = new_img
+    img = cv2.resize(img, (28,28))
+    img = img / 255.0
+    img = img.flatten()
+    return img.reshape(1,-1)
 
-    # Convert RGB to grayscale — same single-channel format as training data
-    if len(img.shape) == 3 and img.shape[2] == 3:
-        img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-    elif len(img.shape) == 3 and img.shape[2] == 4:
-        img = cv2.cvtColor(img, cv2.COLOR_RGBA2GRAY)
-    # If already grayscale (2D), use as-is
-
-    # Resize to 28x28 — same dimensions as training data
-    img_28 = cv2.resize(img, (28, 28), interpolation=cv2.INTER_AREA)
-
-    # Normalize to [0.0, 1.0] — same normalization as training (/ 255.0)
-    img_normalized = img_28.astype(np.float32) / 255.0
-
-    # Reshape to (1, 28, 28, 1) — CNN input format
-    model_input = img_normalized.reshape(1, 28, 28, 1)
-
-    return model_input, img_28
+# Prediction
+if uploaded_file:
 
 
 if uploaded_file:
     image = Image.open(uploaded_file)
-
-    # Correct orientation from EXIF metadata (e.g. photos taken on phones)
-    image = ImageOps.exif_transpose(image)
-
-    # Convert to RGB to ensure consistent channel handling
-    image = image.convert("RGB")
-
-    st.image(image, caption="Uploaded Image")
+    st.image(image, caption="Uploaded Image", use_container_width=True)
 
     # Preprocess matching training pipeline
     model_input, preview_img = preprocess_image(image)
@@ -105,12 +149,14 @@ if uploaded_file:
         for i, idx in enumerate(top3, 1):
             st.write(f"{i}. **{label_map.get(idx, 'Unknown')}** — {preds[idx] * 100:.1f}%")
 
-    # Low confidence warning
-    if confidence < 0.5:
-        st.warning(
-            "Low confidence. Try a clearer photo with:\n"
-            "- Good lighting\n"
-            "- Hand centered in frame\n"
-            "- Plain background\n"
-            "- Similar angle to ASL reference images"
-        )
+    predicted_letter = label_map.get(prediction,'Unknown')
+
+    st.markdown(
+        f'<div class="result-box">Predicted Letter: {predicted_letter}</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        f'<div class="confidence">Confidence: {confidence*100:.2f}%</div>',
+        unsafe_allow_html=True
+    )
